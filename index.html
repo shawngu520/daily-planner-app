@@ -1,0 +1,1795 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>每日生活计划</title>
+    <!-- PWA 相关配置 -->
+    <meta name="description" content="一个帮助您管理每日生活计划的应用">
+    <meta name="theme-color" content="#FF85A2">
+    <link rel="manifest" href="pwa/manifest.json">
+    <link rel="icon" href="https://p11-flow-imagex-sign.byteimg.com/tos-cn-i-a9rns2rl98/rc/pc/super_tool/eca835828aa743b2bcba30791d7968eb~tplv-a9rns2rl98-image.image?lk3s=8e244e95&rcl=20260423204343CAAD1579F3C58DA3F056&rrcfp=f06b921b&x-expires=1779540385&x-signature=VEoaXAVbG%2FUpR2XmPww%2FLVvslvk%3D" type="image/png">
+    <link rel="apple-touch-icon" href="https://p11-flow-imagex-sign.byteimg.com/tos-cn-i-a9rns2rl98/rc/pc/super_tool/eca835828aa743b2bcba30791d7968eb~tplv-a9rns2rl98-image.image?lk3s=8e244e95&rcl=20260423204343CAAD1579F3C58DA3F056&rrcfp=f06b921b&x-expires=1779540385&x-signature=VEoaXAVbG%2FUpR2XmPww%2FLVvslvk%3D">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="每日生活计划">
+    <!-- Tailwind CSS v3 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <!-- 统一的 Tailwind 配置 -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#FF85A2',
+                        secondary: '#FFB6C1',
+                        accent: '#FFC0CB',
+                        light: '#FFF0F5',
+                        dark: '#4A4A4A'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.5s ease-in-out',
+                        'slide-up': 'slideUp 0.5s ease-in-out',
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            '0%': { opacity: '0' },
+                            '100%': { opacity: '1' },
+                        },
+                        slideUp: {
+                            '0%': { transform: 'translateY(20px)', opacity: '0' },
+                            '100%': { transform: 'translateY(0)', opacity: '1' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .glass {
+                background: rgba(255, 255, 255, 0.25);
+                backdrop-filter: blur(10px);
+                -webkit-backdrop-filter: blur(10px);
+                border: 1px solid rgba(255, 255, 255, 0.18);
+            }
+            .card-shadow {
+                box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+            }
+            .text-shadow {
+                text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            }
+            .btn-hover {
+                @apply transition-all duration-300 transform hover:scale-105 hover:shadow-lg active:scale-95;
+            }
+            .card-hover {
+                @apply transition-all duration-300 hover:shadow-xl hover:-translate-y-1;
+            }
+        }
+    </style>
+</head>
+<body class="bg-light min-h-screen font-sans text-dark">
+    <!-- 主容器 -->
+    <div class="max-w-md mx-auto bg-white min-h-screen relative overflow-hidden">
+        <!-- 背景图 -->
+        <div id="backgroundImage" class="absolute inset-0 w-full h-full opacity-10 bg-cover bg-center transition-all duration-500"></div>
+        
+        <!-- 顶部导航 -->
+        <header class="relative z-10 bg-white bg-opacity-90 backdrop-blur-sm shadow-sm">
+            <div class="container mx-auto px-4 py-4 flex justify-between items-center">
+                <h1 class="text-2xl font-bold text-primary text-shadow">每日计划</h1>
+                <button id="settingsBtn" class="text-dark hover:text-primary transition-colors">
+                    <i class="fa fa-cog text-xl"></i>
+                </button>
+            </div>
+        </header>
+        
+        <!-- 主内容区 -->
+        <main class="relative z-10 container mx-auto px-4 py-6 pb-24">
+            <!-- 日期显示 -->
+            <div class="mb-6">
+                <h2 id="currentDate" class="text-xl font-semibold text-dark"></h2>
+                <p id="currentDay" class="text-sm text-gray-500"></p>
+            </div>
+            
+            <!-- 计划统计 -->
+            <div class="grid grid-cols-3 gap-4 mb-6">
+                <div class="bg-white rounded-xl p-4 card-shadow card-hover">
+                    <p class="text-sm text-gray-500">今日计划</p>
+                    <p id="todayCount" class="text-2xl font-bold text-primary">0</p>
+                </div>
+                <div class="bg-white rounded-xl p-4 card-shadow card-hover">
+                    <p class="text-sm text-gray-500">已完成</p>
+                    <p id="completedCount" class="text-2xl font-bold text-green-500">0</p>
+                </div>
+                <div class="bg-white rounded-xl p-4 card-shadow card-hover">
+                    <p class="text-sm text-gray-500">待完成</p>
+                    <p id="pendingCount" class="text-2xl font-bold text-orange-500">0</p>
+                </div>
+            </div>
+            
+            <!-- 计划列表 -->
+            <div class="mb-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-semibold">今日计划列表</h3>
+                    <div class="flex space-x-2">
+                        <button id="filterBtn" class="text-sm bg-gray-100 hover:bg-gray-200 px-3 py-1 rounded-full transition-colors">
+                            <i class="fa fa-filter mr-1"></i> 筛选
+                        </button>
+                        <button id="sortBtn" class="text-sm bg-gray-100 hover:bg-gray-200 px-3 py-1 rounded-full transition-colors">
+                            <i class="fa fa-sort mr-1"></i> 排序
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- 计划列表容器 -->
+                <div id="planList" class="space-y-4">
+                    <!-- 计划卡片将通过JS动态生成 -->
+                    <div class="text-center py-8 text-gray-500" id="emptyState">
+                        <i class="fa fa-calendar-o text-4xl mb-4"></i>
+                        <p>今天还没有计划</p>
+                        <p class="text-sm mt-2">点击下方按钮添加新计划</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+        
+        <!-- 底部导航 -->
+        <footer class="fixed bottom-0 left-0 right-0 z-20 bg-white bg-opacity-95 backdrop-blur-sm shadow-lg max-w-md mx-auto">
+            <div class="container mx-auto px-4 py-3 flex justify-around">
+                <button id="todayBtn" class="flex flex-col items-center text-primary">
+                    <i class="fa fa-calendar-check-o text-xl"></i>
+                    <span class="text-xs mt-1">今日</span>
+                </button>
+                <button id="weekBtn" class="flex flex-col items-center text-gray-500 hover:text-primary transition-colors">
+                    <i class="fa fa-calendar text-xl"></i>
+                    <span class="text-xs mt-1">本周</span>
+                </button>
+                <button id="addPlanBtn" class="flex flex-col items-center">
+                    <div class="w-12 h-12 rounded-full bg-primary text-white flex items-center justify-center shadow-lg btn-hover">
+                        <i class="fa fa-plus text-xl"></i>
+                    </div>
+                </button>
+                <button id="historyBtn" class="flex flex-col items-center text-gray-500 hover:text-primary transition-colors">
+                    <i class="fa fa-history text-xl"></i>
+                    <span class="text-xs mt-1">历史</span>
+                </button>
+                <button id="profileBtn" class="flex flex-col items-center text-gray-500 hover:text-primary transition-colors">
+                    <i class="fa fa-user-o text-xl"></i>
+                    <span class="text-xs mt-1">我的</span>
+                </button>
+            </div>
+        </footer>
+    </div>
+    
+    <!-- 添加计划模态框 -->
+    <div id="addPlanModal" class="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center hidden">
+        <div class="bg-white rounded-xl w-11/12 max-w-md mx-auto animate-fade-in overflow-hidden">
+            <div class="p-4 border-b">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-lg font-semibold">添加新计划</h3>
+                    <button id="closeAddPlanModal" class="text-gray-500 hover:text-gray-700">
+                        <i class="fa fa-times"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="p-4">
+                <form id="addPlanForm">
+                    <div class="mb-4">
+                        <label for="planName" class="block text-sm font-medium text-gray-700 mb-1">计划名称</label>
+                        <input type="text" id="planName" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" placeholder="输入计划名称" required>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label for="planDate" class="block text-sm font-medium text-gray-700 mb-1">日期</label>
+                            <input type="date" id="planDate" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" required>
+                        </div>
+                        <div>
+                            <label for="planTime" class="block text-sm font-medium text-gray-700 mb-1">时间</label>
+                            <input type="time" id="planTime" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" required>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label for="planDuration" class="block text-sm font-medium text-gray-700 mb-1">预计耗时（分钟）</label>
+                        <input type="number" id="planDuration" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" placeholder="输入预计耗时" min="1" required>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label for="planType" class="block text-sm font-medium text-gray-700 mb-1">计划类型</label>
+                        <select id="planType" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" required>
+                            <option value="">请选择类型</option>
+                            <option value="study">学习</option>
+                            <option value="work">工作</option>
+                            <option value="exercise">运动</option>
+                            <option value="rest">休息</option>
+                            <option value="diet">饮食</option>
+                            <option value="other">其他</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label for="planReminder" class="block text-sm font-medium text-gray-700 mb-1">提醒设置</label>
+                        <select id="planReminder" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
+                            <option value="0">不提醒</option>
+                            <option value="5">提前5分钟</option>
+                            <option value="10">提前10分钟</option>
+                            <option value="15">提前15分钟</option>
+                            <option value="30">提前30分钟</option>
+                            <option value="60">提前1小时</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label for="planSound" class="block text-sm font-medium text-gray-700 mb-1">提醒音效</label>
+                        <select id="planSound" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
+                            <option value="sound1">铃声1</option>
+                            <option value="sound2">铃声2</option>
+                            <option value="sound3">铃声3</option>
+                            <option value="sound4">铃声4</option>
+                            <option value="sound5">铃声5</option>
+                        </select>
+                        <div class="flex justify-end mt-1">
+                            <button type="button" id="previewSoundBtn" class="text-xs text-primary hover:text-primary-dark">
+                                <i class="fa fa-volume-up mr-1"></i> 预览
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label for="planNote" class="block text-sm font-medium text-gray-700 mb-1">备注</label>
+                        <textarea id="planNote" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" rows="3" placeholder="添加备注信息（可选）"></textarea>
+                    </div>
+                    
+                    <button type="submit" class="w-full bg-primary text-white py-3 rounded-lg font-medium btn-hover">
+                        保存计划
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 提醒悬浮窗 -->
+    <div id="reminderNotification" class="fixed inset-0 z-[100] bg-black bg-opacity-70 flex items-center justify-center hidden">
+        <div class="bg-white rounded-xl w-11/12 max-w-md mx-auto animate-slide-up overflow-hidden relative">
+            <!-- 关闭按钮 -->
+            <button id="closeReminderBtn" class="absolute top-3 right-3 text-gray-500 hover:text-gray-700 z-10">
+                <i class="fa fa-times"></i>
+            </button>
+            
+            <!-- 提醒内容 -->
+            <div class="p-6">
+                <div class="flex items-center mb-4">
+                    <div id="reminderIcon" class="w-12 h-12 rounded-full bg-primary flex items-center justify-center text-white mr-4">
+                        <i class="fa fa-bell text-xl"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-semibold">计划提醒</h3>
+                        <p id="reminderTime" class="text-sm text-gray-500"></p>
+                    </div>
+                </div>
+                
+                <h4 id="reminderTitle" class="text-xl font-bold mb-2"></h4>
+                <p id="reminderDuration" class="text-sm text-gray-600 mb-4"></p>
+                <p id="reminderNote" class="text-sm text-gray-600 mb-6"></p>
+                
+                <!-- 操作按钮 -->
+                <div class="grid grid-cols-3 gap-3">
+                    <button id="reminderCancelBtn" class="py-3 border border-gray-300 rounded-lg text-gray-700 font-medium btn-hover">
+                        取消
+                    </button>
+                    <button id="reminderPostponeBtn" class="py-3 border border-primary text-primary rounded-lg font-medium btn-hover">
+                        推迟10分钟
+                    </button>
+                    <button id="reminderExecuteBtn" class="py-3 bg-primary text-white rounded-lg font-medium btn-hover">
+                        立即执行
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 设置模态框 -->
+    <div id="settingsModal" class="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center hidden">
+        <div class="bg-white rounded-xl w-11/12 max-w-md mx-auto animate-fade-in overflow-hidden">
+            <div class="p-4 border-b">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-lg font-semibold">设置</h3>
+                    <button id="closeSettingsModal" class="text-gray-500 hover:text-gray-700">
+                        <i class="fa fa-times"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="p-4">
+                <div class="space-y-4">
+                    <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                        <div class="flex items-center">
+                            <i class="fa fa-volume-up text-primary mr-3"></i>
+                            <span>提醒音量</span>
+                        </div>
+                        <input type="range" id="volumeSlider" min="0" max="100" value="80" class="w-32">
+                    </div>
+                    
+                    <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                        <div class="flex items-center">
+                            <i class="fa fa-bell text-primary mr-3"></i>
+                            <span>默认提醒时间</span>
+                        </div>
+                        <select id="defaultReminder" class="px-3 py-1 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
+                            <option value="0">不提醒</option>
+                            <option value="5">提前5分钟</option>
+                            <option value="10">提前10分钟</option>
+                            <option value="15">提前15分钟</option>
+                            <option value="30">提前30分钟</option>
+                            <option value="60">提前1小时</option>
+                        </select>
+                    </div>
+                    
+                    <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                        <div class="flex items-center">
+                            <i class="fa fa-music text-primary mr-3"></i>
+                            <span>默认提醒音效</span>
+                        </div>
+                        <select id="defaultSound" class="px-3 py-1 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
+                            <option value="sound1">铃声1</option>
+                            <option value="sound2">铃声2</option>
+                            <option value="sound3">铃声3</option>
+                            <option value="sound4">铃声4</option>
+                            <option value="sound5">铃声5</option>
+                        </select>
+                    </div>
+                    
+                    <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                        <div class="flex items-center">
+                            <i class="fa fa-picture-o text-primary mr-3"></i>
+                            <span>背景图片</span>
+                        </div>
+                        <select id="backgroundOption" class="px-3 py-1 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
+                            <option value="auto">根据计划类型</option>
+                            <option value="study">学习风格</option>
+                            <option value="work">工作风格</option>
+                            <option value="exercise">运动风格</option>
+                            <option value="rest">休息风格</option>
+                            <option value="diet">饮食风格</option>
+                            <option value="none">无背景</option>
+                        </select>
+                    </div>
+                    
+                    <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                        <div class="flex items-center">
+                            <i class="fa fa-trash text-primary mr-3"></i>
+                            <span>清除已完成计划</span>
+                        </div>
+                        <button id="clearCompletedBtn" class="px-3 py-1 bg-red-500 text-white rounded-lg btn-hover">
+                            清除
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 计划详情模态框 -->
+    <div id="planDetailModal" class="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center hidden">
+        <div class="bg-white rounded-xl w-11/12 max-w-md mx-auto animate-fade-in overflow-hidden">
+            <div class="p-4 border-b">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-lg font-semibold">计划详情</h3>
+                    <button id="closePlanDetailModal" class="text-gray-500 hover:text-gray-700">
+                        <i class="fa fa-times"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="p-4">
+                <div id="planDetailContent">
+                    <!-- 计划详情内容将通过JS动态生成 -->
+                </div>
+                <div class="flex justify-between mt-6">
+                    <button id="editPlanBtn" class="px-4 py-2 border border-primary text-primary rounded-lg btn-hover">
+                        <i class="fa fa-pencil mr-1"></i> 编辑
+                    </button>
+                    <button id="deletePlanBtn" class="px-4 py-2 bg-red-500 text-white rounded-lg btn-hover">
+                        <i class="fa fa-trash mr-1"></i> 删除
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 筛选模态框 -->
+    <div id="filterModal" class="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center hidden">
+        <div class="bg-white rounded-xl w-11/12 max-w-md mx-auto animate-fade-in overflow-hidden">
+            <div class="p-4 border-b">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-lg font-semibold">筛选计划</h3>
+                    <button id="closeFilterModal" class="text-gray-500 hover:text-gray-700">
+                        <i class="fa fa-times"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="p-4">
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">计划类型</label>
+                    <div class="grid grid-cols-3 gap-2">
+                        <label class="flex items-center p-2 border rounded-lg cursor-pointer hover:bg-gray-50">
+                            <input type="checkbox" class="filter-type mr-2" value="all" checked>
+                            <span>全部</span>
+                        </label>
+                        <label class="flex items-center p-2 border rounded-lg cursor-pointer hover:bg-gray-50">
+                            <input type="checkbox" class="filter-type mr-2" value="study">
+                            <span>学习</span>
+                        </label>
+                        <label class="flex items-center p-2 border rounded-lg cursor-pointer hover:bg-gray-50">
+                            <input type="checkbox" class="filter-type mr-2" value="work">
+                            <span>工作</span>
+                        </label>
+                        <label class="flex items-center p-2 border rounded-lg cursor-pointer hover:bg-gray-50">
+                            <input type="checkbox" class="filter-type mr-2" value="exercise">
+                            <span>运动</span>
+                        </label>
+                        <label class="flex items-center p-2 border rounded-lg cursor-pointer hover:bg-gray-50">
+                            <input type="checkbox" class="filter-type mr-2" value="rest">
+                            <span>休息</span>
+                        </label>
+                        <label class="flex items-center p-2 border rounded-lg cursor-pointer hover:bg-gray-50">
+                            <input type="checkbox" class="filter-type mr-2" value="diet">
+                            <span>饮食</span>
+                        </label>
+                        <label class="flex items-center p-2 border rounded-lg cursor-pointer hover:bg-gray-50">
+                            <input type="checkbox" class="filter-type mr-2" value="other">
+                            <span>其他</span>
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">完成状态</label>
+                    <div class="flex space-x-4">
+                        <label class="flex items-center p-2 border rounded-lg cursor-pointer hover:bg-gray-50">
+                            <input type="radio" name="filter-status" class="mr-2" value="all" checked>
+                            <span>全部</span>
+                        </label>
+                        <label class="flex items-center p-2 border rounded-lg cursor-pointer hover:bg-gray-50">
+                            <input type="radio" name="filter-status" class="mr-2" value="pending">
+                            <span>未完成</span>
+                        </label>
+                        <label class="flex items-center p-2 border rounded-lg cursor-pointer hover:bg-gray-50">
+                            <input type="radio" name="filter-status" class="mr-2" value="completed">
+                            <span>已完成</span>
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="flex justify-between mt-6">
+                    <button id="resetFilterBtn" class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg btn-hover">
+                        重置
+                    </button>
+                    <button id="applyFilterBtn" class="px-4 py-2 bg-primary text-white rounded-lg btn-hover">
+                        应用
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 排序模态框 -->
+    <div id="sortModal" class="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center hidden">
+        <div class="bg-white rounded-xl w-11/12 max-w-md mx-auto animate-fade-in overflow-hidden">
+            <div class="p-4 border-b">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-lg font-semibold">排序计划</h3>
+                    <button id="closeSortModal" class="text-gray-500 hover:text-gray-700">
+                        <i class="fa fa-times"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="p-4">
+                <div class="space-y-3">
+                    <label class="flex items-center p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
+                        <input type="radio" name="sort-option" class="mr-3" value="time-asc" checked>
+                        <span>时间（从早到晚）</span>
+                    </label>
+                    <label class="flex items-center p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
+                        <input type="radio" name="sort-option" class="mr-3" value="time-desc">
+                        <span>时间（从晚到早）</span>
+                    </label>
+                    <label class="flex items-center p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
+                        <input type="radio" name="sort-option" class="mr-3" value="duration-asc">
+                        <span>耗时（从短到长）</span>
+                    </label>
+                    <label class="flex items-center p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
+                        <input type="radio" name="sort-option" class="mr-3" value="duration-desc">
+                        <span>耗时（从长到短）</span>
+                    </label>
+                    <label class="flex items-center p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
+                        <input type="radio" name="sort-option" class="mr-3" value="name-asc">
+                        <span>名称（A-Z）</span>
+                    </label>
+                    <label class="flex items-center p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
+                        <input type="radio" name="sort-option" class="mr-3" value="name-desc">
+                        <span>名称（Z-A）</span>
+                    </label>
+                </div>
+                
+                <button id="applySortBtn" class="w-full mt-6 py-3 bg-primary text-white rounded-lg font-medium btn-hover">
+                    应用排序
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 确认对话框 -->
+    <div id="confirmDialog" class="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center hidden">
+        <div class="bg-white rounded-xl w-11/12 max-w-xs mx-auto animate-fade-in overflow-hidden">
+            <div class="p-4">
+                <h3 id="confirmTitle" class="text-lg font-semibold text-center mb-2">确认操作</h3>
+                <p id="confirmMessage" class="text-center text-gray-600 mb-6"></p>
+                <div class="flex justify-between">
+                    <button id="confirmCancelBtn" class="flex-1 py-2 border border-gray-300 text-gray-700 rounded-l-lg btn-hover">
+                        取消
+                    </button>
+                    <button id="confirmOkBtn" class="flex-1 py-2 bg-primary text-white rounded-r-lg btn-hover">
+                        确认
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 注册 Service Worker -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('pwa/service-worker.js')
+                    .then(function(registration) {
+                        console.log('ServiceWorker 注册成功，作用域为:', registration.scope);
+                    })
+                    .catch(function(error) {
+                        console.log('ServiceWorker 注册失败:', error);
+                    });
+            });
+        }
+        
+        // 图片资源映射
+        const typeImages = {
+            study: [
+                "https://p11-doubao-search-sign.byteimg.com/labis/489750acb31be803bd1d7d4a0f2f4bd8~tplv-be4g95zd3a-image.jpeg?lk3s=feb11e32&x-expires=1792486226&x-signature=9uyMTuTVi%2FFsyrMik1cKWRPRlaQ%3D",
+                "https://p26-doubao-search-sign.byteimg.com/tos-cn-i-be4g95zd3a/771611310241873945~tplv-be4g95zd3a-image.jpeg?lk3s=feb11e32&x-expires=1792486226&x-signature=6fBQt21rGDkM17SaRkOYT32%2F4F8%3D",
+                "https://p11-doubao-search-sign.byteimg.com/labis/image/43b95aac313a2e7a3fc7a538e12def3f~tplv-be4g95zd3a-image.jpeg?lk3s=feb11e32&x-expires=1792486226&x-signature=CnLkDAiHqumFxtNQal60XLTkCCk%3D",
+                "https://p26-doubao-search-sign.byteimg.com/tos-cn-i-be4g95zd3a/1472633613181124623~tplv-be4g95zd3a-image.jpeg?lk3s=feb11e32&x-expires=1792486226&x-signature=wRv90FlHrH1qB6mwz06xCQGw0js%3D",
+                "https://p3-doubao-search-sign.byteimg.com/labis/image/bfbb84d49a482edb61b7db352a0477bc~tplv-be4g95zd3a-image.jpeg?lk3s=feb11e32&x-expires=1792486226&x-signature=NO%2Bbektn4aGnQJsXVy4RAYs%2FKNY%3D"
+            ],
+            work: [
+                "https://p26-doubao-search-sign.byteimg.com/labis/4c895c3720401ad0af548d95a1ba2ef0~tplv-be4g95zd3a-image.jpeg?lk3s=feb11e32&x-expires=1792486240&x-signature=guOoYlB5zD6fJ27Vxn6RR3rZUPI%3D",
+                "https://p11-doubao-search-sign.byteimg.com/labis/image/e4dced636df210794bc301ba536f7463~tplv-be4g95zd3a-image.jpeg?lk3s=feb11e32&x-expires=1792486240&x-signature=j3xY0uUdEpIZQpQmVqSFJwklTQI%3D",
+                "https://p11-doubao-search-sign.byteimg.com/labis/81865f44b2b30a243b2f134d2a203a2d~tplv-be4g95zd3a-image.jpeg?lk3s=feb11e32&x-expires=1792486240&x-signature=jks%2FfD5vE%2FDqJnsUsVMK3Hz%2BNtY%3D",
+                "https://p11-doubao-search-sign.byteimg.com/labis/9ea90c46496be54e153f9abbf2829f5d~tplv-be4g95zd3a-image.jpeg?lk3s=feb11e32&x-expires=1792486240&x-signature=4aZp9tmL%2FaZgbSOKpyS3sEcKD0s%3D"
+            ],
+            exercise: [
+                "https://p26-doubao-search-sign.byteimg.com/pgc-image/dad4f440251640f2b8f098f260dea653~tplv-be4g95zd3a-image.jpeg?lk3s=feb11e32&x-expires=1792486226&x-signature=g9OootNmRayME2Gje%2BXv%2BFIjcEY%3D",
+                "https://p26-doubao-search-sign.byteimg.com/pgc-image/38e7b529b558438bba9110e1a5d51348~tplv-be4g95zd3a-image.jpeg?lk3s=feb11e32&x-expires=1792486226&x-signature=9h2lVI5wB7%2FuzSQ%2F2g%2FuOMMiAE4%3D",
+                "https://p11-doubao-search-sign.byteimg.com/labis/a759b037d6ff0e8c198339c1b79bc411~tplv-be4g95zd3a-image.jpeg?lk3s=feb11e32&x-expires=1792486226&x-signature=f71YP22omTuPKxIWbLVqmspAhus%3D",
+                "https://p11-doubao-search-sign.byteimg.com/pgc-image/a428023330b04fc49d574335d29c2927~tplv-be4g95zd3a-image.jpeg?lk3s=feb11e32&x-expires=1792486226&x-signature=s78aJOYBDDFd19js5hrPQvdhYUY%3D"
+            ],
+            rest: [
+                "https://p3-doubao-search-sign.byteimg.com/labis/2c9b34550f9216a3e1ad1e9f8c4cb5c6~tplv-be4g95zd3a-image.jpeg?lk3s=feb11e32&x-expires=1792486240&x-signature=o%2Fd15M1xO3cTPLt7mN8r5VvB2KI%3D",
+                "https://p11-doubao-search-sign.byteimg.com/labis/0154a27406290ce27cfa85d21b28d47d~tplv-be4g95zd3a-image.jpeg?lk3s=feb11e32&x-expires=1792486240&x-signature=csXbCpop9dh%2FvotjmaLT5y2MG%2F4%3D",
+                "https://p26-doubao-search-sign.byteimg.com/labis/image/496182ebde6a7625e6139f29cd11a65b~tplv-be4g95zd3a-image.jpeg?lk3s=feb11e32&x-expires=1792486240&x-signature=XQ%2BrsOOsWaW5dgQit1V%2BEScRbJo%3D",
+                "https://p3-doubao-search-sign.byteimg.com/labis/23ee4659e2e4dce5572981bc400134db~tplv-be4g95zd3a-image.jpeg?lk3s=feb11e32&x-expires=1792486240&x-signature=Z2BKIa8MtvURinnCvLS77PoiPpQ%3D"
+            ],
+            diet: [
+                "https://p26-doubao-search-sign.byteimg.com/labis/66afe9f59ae33ee7f4aa41f11945780c~tplv-be4g95zd3a-image.jpeg?lk3s=feb11e32&x-expires=1792486240&x-signature=KeXujODifCUfLNu90xd%2F3tOPc%2FU%3D",
+                "https://p26-doubao-search-sign.byteimg.com/labis/c7595eac22ebb3e1300eda540d767b85~tplv-be4g95zd3a-image.jpeg?lk3s=feb11e32&x-expires=1792486240&x-signature=DlmLu9MS0R5XMKseMtNOvsWnP9g%3D",
+                "https://p26-doubao-search-sign.byteimg.com/labis/0c142d85919777529aec44bcbdb8fc55~tplv-be4g95zd3a-image.jpeg?lk3s=feb11e32&x-expires=1792486240&x-signature=IcdFBlauJxWKbNIYp1sxzAxOOK4%3D",
+                "https://p3-doubao-search-sign.byteimg.com/labis/856f3c19141465c354a474c827795c4a~tplv-be4g95zd3a-image.jpeg?lk3s=feb11e32&x-expires=1792486240&x-signature=vEL9qwJqZZ3tOrT%2Bsq3djo289q8%3D"
+            ],
+            other: [
+                "https://p26-doubao-search-sign.byteimg.com/labis/4fb674768f80c175f6ed6166211da6ca~tplv-be4g95zd3a-image.jpeg?lk3s=feb11e32&x-expires=1792486226&x-signature=InqFTRj0adJ6viwHrsanevyB670%3D",
+                "https://p3-doubao-search-sign.byteimg.com/labis/31e482e4204beda1a2084fadf60c97dd~tplv-be4g95zd3a-image.jpeg?lk3s=feb11e32&x-expires=1792486226&x-signature=OZydhfNO18eqq2Bi9rSq9C9JhXM%3D",
+                "https://p26-doubao-search-sign.byteimg.com/labis/262ddf83c27259c265358d7b9fdbcbd9~tplv-be4g95zd3a-image.jpeg?lk3s=feb11e32&x-expires=1792486226&x-signature=TRFvHd7J%2Bdplbf5aBBocRrYgKBU%3D"
+            ]
+        };
+        
+        // 提醒音效
+        const reminderSounds = {
+            sound1: "https://assets.mixkit.co/active_storage/sfx/2005/2005-preview.mp3",
+            sound2: "https://assets.mixkit.co/active_storage/sfx/2006/2006-preview.mp3",
+            sound3: "https://assets.mixkit.co/active_storage/sfx/2007/2007-preview.mp3",
+            sound4: "https://assets.mixkit.co/active_storage/sfx/2008/2008-preview.mp3",
+            sound5: "https://assets.mixkit.co/active_storage/sfx/2009/2009-preview.mp3"
+        };
+        
+        // 类型图标映射
+        const typeIcons = {
+            study: '<i class="fa fa-book"></i>',
+            work: '<i class="fa fa-briefcase"></i>',
+            exercise: '<i class="fa fa-heartbeat"></i>',
+            rest: '<i class="fa fa-coffee"></i>',
+            diet: '<i class="fa fa-cutlery"></i>',
+            other: '<i class="fa fa-star"></i>'
+        };
+        
+        // 类型颜色映射
+        const typeColors = {
+            study: 'bg-blue-100 text-blue-600',
+            work: 'bg-purple-100 text-purple-600',
+            exercise: 'bg-green-100 text-green-600',
+            rest: 'bg-yellow-100 text-yellow-600',
+            diet: 'bg-red-100 text-red-600',
+            other: 'bg-gray-100 text-gray-600'
+        };
+        
+        // 类型名称映射
+        const typeNames = {
+            study: '学习',
+            work: '工作',
+            exercise: '运动',
+            rest: '休息',
+            diet: '饮食',
+            other: '其他'
+        };
+        
+        // 全局变量
+        let plans = [];
+        let filteredPlans = [];
+        let currentPlanId = null;
+        let reminderTimeout = null;
+        let settings = {
+            volume: 80,
+            defaultReminder: 10,
+            defaultSound: 'sound1',
+            backgroundOption: 'auto'
+        };
+        
+        // DOM 加载完成后执行
+        document.addEventListener('DOMContentLoaded', function() {
+            // 初始化应用
+            initApp();
+            
+            // 设置事件监听器
+            setupEventListeners();
+            
+            // 设置当前日期
+            setCurrentDate();
+            
+            // 每分钟检查一次提醒
+            setInterval(checkReminders, 60000);
+            
+            // 立即检查一次提醒
+            checkReminders();
+        });
+        
+        // 初始化应用
+        function initApp() {
+            // 从 localStorage 加载计划
+            loadPlans();
+            
+            // 从 localStorage 加载设置
+            loadSettings();
+            
+            // 应用背景设置
+            applyBackgroundSetting();
+            
+            // 过滤今日计划
+            filterTodayPlans();
+            
+            // 渲染计划列表
+            renderPlanList();
+            
+            // 更新统计数据
+            updateStatistics();
+        }
+        
+        // 设置事件监听器
+        function setupEventListeners() {
+            // 添加计划按钮
+            document.getElementById('addPlanBtn').addEventListener('click', function() {
+                openAddPlanModal();
+            });
+            
+            // 关闭添加计划模态框
+            document.getElementById('closeAddPlanModal').addEventListener('click', function() {
+                closeAddPlanModal();
+            });
+            
+            // 添加计划表单提交
+            document.getElementById('addPlanForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                savePlan();
+            });
+            
+            // 设置按钮
+            document.getElementById('settingsBtn').addEventListener('click', function() {
+                openSettingsModal();
+            });
+            
+            // 关闭设置模态框
+            document.getElementById('closeSettingsModal').addEventListener('click', function() {
+                closeSettingsModal();
+            });
+            
+            // 关闭计划详情模态框
+            document.getElementById('closePlanDetailModal').addEventListener('click', function() {
+                closePlanDetailModal();
+            });
+            
+            // 编辑计划按钮
+            document.getElementById('editPlanBtn').addEventListener('click', function() {
+                editPlan(currentPlanId);
+            });
+            
+            // 删除计划按钮
+            document.getElementById('deletePlanBtn').addEventListener('click', function() {
+                confirmDeletePlan(currentPlanId);
+            });
+            
+            // 筛选按钮
+            document.getElementById('filterBtn').addEventListener('click', function() {
+                openFilterModal();
+            });
+            
+            // 关闭筛选模态框
+            document.getElementById('closeFilterModal').addEventListener('click', function() {
+                closeFilterModal();
+            });
+            
+            // 应用筛选按钮
+            document.getElementById('applyFilterBtn').addEventListener('click', function() {
+                applyFilter();
+            });
+            
+            // 重置筛选按钮
+            document.getElementById('resetFilterBtn').addEventListener('click', function() {
+                resetFilter();
+            });
+            
+            // 排序按钮
+            document.getElementById('sortBtn').addEventListener('click', function() {
+                openSortModal();
+            });
+            
+            // 关闭排序模态框
+            document.getElementById('closeSortModal').addEventListener('click', function() {
+                closeSortModal();
+            });
+            
+            // 应用排序按钮
+            document.getElementById('applySortBtn').addEventListener('click', function() {
+                applySort();
+            });
+            
+            // 清除已完成计划按钮
+            document.getElementById('clearCompletedBtn').addEventListener('click', function() {
+                confirmClearCompleted();
+            });
+            
+            // 确认对话框取消按钮
+            document.getElementById('confirmCancelBtn').addEventListener('click', function() {
+                closeConfirmDialog();
+            });
+            
+            // 确认对话框确认按钮
+            document.getElementById('confirmOkBtn').addEventListener('click', function() {
+                executeConfirmAction();
+            });
+            
+            // 关闭提醒按钮
+            document.getElementById('closeReminderBtn').addEventListener('click', function() {
+                closeReminderNotification();
+            });
+            
+            // 提醒取消按钮
+            document.getElementById('reminderCancelBtn').addEventListener('click', function() {
+                closeReminderNotification();
+            });
+            
+            // 提醒推迟按钮
+            document.getElementById('reminderPostponeBtn').addEventListener('click', function() {
+                postponeReminder();
+            });
+            
+            // 提醒执行按钮
+            document.getElementById('reminderExecuteBtn').addEventListener('click', function() {
+                executeReminder();
+            });
+            
+            // 预览音效按钮
+            document.getElementById('previewSoundBtn').addEventListener('click', function() {
+                previewSound();
+            });
+            
+            // 音量滑块
+            document.getElementById('volumeSlider').addEventListener('input', function() {
+                updateVolume();
+            });
+            
+            // 默认提醒时间
+            document.getElementById('defaultReminder').addEventListener('change', function() {
+                updateDefaultReminder();
+            });
+            
+            // 默认提醒音效
+            document.getElementById('defaultSound').addEventListener('change', function() {
+                updateDefaultSound();
+            });
+            
+            // 背景选项
+            document.getElementById('backgroundOption').addEventListener('change', function() {
+                updateBackgroundOption();
+            });
+            
+            // 今日按钮
+            document.getElementById('todayBtn').addEventListener('click', function() {
+                filterTodayPlans();
+            });
+            
+            // 本周按钮
+            document.getElementById('weekBtn').addEventListener('click', function() {
+                filterWeekPlans();
+            });
+            
+            // 历史按钮
+            document.getElementById('historyBtn').addEventListener('click', function() {
+                filterHistoryPlans();
+            });
+            
+            // 我的按钮
+            document.getElementById('profileBtn').addEventListener('click', function() {
+                // 暂未实现
+                alert('个人中心功能暂未实现');
+            });
+            
+            // 筛选类型全选
+            document.querySelector('.filter-type[value="all"]').addEventListener('change', function() {
+                toggleSelectAllTypes(this.checked);
+            });
+        }
+        
+        // 设置当前日期
+        function setCurrentDate() {
+            const now = new Date();
+            const options = { year: 'numeric', month: 'long', day: 'numeric' };
+            const dayOptions = { weekday: 'long' };
+            
+            document.getElementById('currentDate').textContent = now.toLocaleDateString('zh-CN', options);
+            document.getElementById('currentDay').textContent = now.toLocaleDateString('zh-CN', dayOptions);
+            
+            // 设置添加计划模态框的默认日期为今天
+            const today = now.toISOString().split('T')[0];
+            document.getElementById('planDate').value = today;
+            
+            // 设置添加计划模态框的默认时间为当前时间
+            const hours = now.getHours().toString().padStart(2, '0');
+            const minutes = now.getMinutes().toString().padStart(2, '0');
+            document.getElementById('planTime').value = `${hours}:${minutes}`;
+        }
+        
+        // 从 localStorage 加载计划
+        function loadPlans() {
+            const storedPlans = localStorage.getItem('dailyPlannerPlans');
+            if (storedPlans) {
+                plans = JSON.parse(storedPlans);
+                
+                // 确保每个计划都有必要的属性
+                plans = plans.map(plan => {
+                    return {
+                        id: plan.id || generateId(),
+                        name: plan.name || '未命名计划',
+                        date: plan.date || new Date().toISOString().split('T')[0],
+                        time: plan.time || '00:00',
+                        duration: plan.duration || 30,
+                        type: plan.type || 'other',
+                        reminder: plan.reminder || 0,
+                        sound: plan.sound || 'sound1',
+                        note: plan.note || '',
+                        completed: plan.completed || false,
+                        createdAt: plan.createdAt || new Date().toISOString(),
+                        reminderTime: plan.reminderTime || null,
+                        postponed: plan.postponed || false
+                    };
+                });
+            }
+        }
+        
+        // 保存计划到 localStorage
+        function savePlans() {
+            localStorage.setItem('dailyPlannerPlans', JSON.stringify(plans));
+        }
+        
+        // 从 localStorage 加载设置
+        function loadSettings() {
+            const storedSettings = localStorage.getItem('dailyPlannerSettings');
+            if (storedSettings) {
+                settings = { ...settings, ...JSON.parse(storedSettings) };
+                
+                // 应用设置到 UI
+                document.getElementById('volumeSlider').value = settings.volume;
+                document.getElementById('defaultReminder').value = settings.defaultReminder;
+                document.getElementById('defaultSound').value = settings.defaultSound;
+                document.getElementById('backgroundOption').value = settings.backgroundOption;
+            }
+        }
+        
+        // 保存设置到 localStorage
+        function saveSettings() {
+            localStorage.setItem('dailyPlannerSettings', JSON.stringify(settings));
+        }
+        
+        // 生成唯一 ID
+        function generateId() {
+            return Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
+        }
+        
+        // 打开添加计划模态框
+        function openAddPlanModal() {
+            document.getElementById('addPlanModal').classList.remove('hidden');
+            
+            // 设置默认值
+            document.getElementById('planReminder').value = settings.defaultReminder;
+            document.getElementById('planSound').value = settings.defaultSound;
+        }
+        
+        // 关闭添加计划模态框
+        function closeAddPlanModal() {
+            document.getElementById('addPlanModal').classList.add('hidden');
+            document.getElementById('addPlanForm').reset();
+        }
+        
+        // 保存计划
+        function savePlan() {
+            const name = document.getElementById('planName').value;
+            const date = document.getElementById('planDate').value;
+            const time = document.getElementById('planTime').value;
+            const duration = parseInt(document.getElementById('planDuration').value);
+            const type = document.getElementById('planType').value;
+            const reminder = parseInt(document.getElementById('planReminder').value);
+            const sound = document.getElementById('planSound').value;
+            const note = document.getElementById('planNote').value;
+            
+            // 创建计划对象
+            const plan = {
+                id: generateId(),
+                name,
+                date,
+                time,
+                duration,
+                type,
+                reminder,
+                sound,
+                note,
+                completed: false,
+                createdAt: new Date().toISOString(),
+                reminderTime: null,
+                postponed: false
+            };
+            
+            // 计算提醒时间
+            if (reminder > 0) {
+                const planDateTime = new Date(`${date}T${time}`);
+                plan.reminderTime = new Date(planDateTime - reminder * 60000).toISOString();
+            }
+            
+            // 添加到计划列表
+            plans.push(plan);
+            
+            // 保存到 localStorage
+            savePlans();
+            
+            // 关闭模态框
+            closeAddPlanModal();
+            
+            // 重新渲染计划列表
+            renderPlanList();
+            
+            // 更新统计数据
+            updateStatistics();
+            
+            // 应用背景设置
+            applyBackgroundSetting();
+            
+            // 检查提醒
+            checkReminders();
+        }
+        
+        // 渲染计划列表
+        function renderPlanList() {
+            const planListEl = document.getElementById('planList');
+            const emptyStateEl = document.getElementById('emptyState');
+            
+            // 清空列表
+            planListEl.innerHTML = '';
+            
+            // 检查是否有计划
+            if (filteredPlans.length === 0) {
+                emptyStateEl.classList.remove('hidden');
+                return;
+            }
+            
+            // 隐藏空状态
+            emptyStateEl.classList.add('hidden');
+            
+            // 渲染每个计划
+            filteredPlans.forEach(plan => {
+                const planCard = createPlanCard(plan);
+                planListEl.appendChild(planCard);
+            });
+        }
+        
+        // 创建计划卡片
+        function createPlanCard(plan) {
+            const card = document.createElement('div');
+            card.className = `bg-white rounded-xl p-4 card-shadow card-hover relative overflow-hidden`;
+            card.dataset.id = plan.id;
+            
+            // 卡片内容
+            card.innerHTML = `
+                <div class="flex justify-between items-start">
+                    <div class="flex items-center">
+                        <div class="w-10 h-10 rounded-full ${typeColors[plan.type]} flex items-center justify-center mr-3">
+                            ${typeIcons[plan.type]}
+                        </div>
+                        <div>
+                            <h4 class="font-semibold ${plan.completed ? 'line-through text-gray-500' : ''}">${plan.name}</h4>
+                            <p class="text-sm text-gray-500">${plan.time} · ${plan.duration}分钟</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center">
+                        <span class="px-2 py-1 text-xs rounded-full ${typeColors[plan.type]} mr-2">${typeNames[plan.type]}</span>
+                        <button class="toggle-complete w-8 h-8 rounded-full border-2 ${plan.completed ? 'bg-green-500 border-green-500 text-white' : 'border-gray-300 text-gray-300'} flex items-center justify-center transition-colors">
+                            <i class="fa fa-check"></i>
+                        </button>
+                    </div>
+                </div>
+                ${plan.note ? `<p class="text-sm text-gray-600 mt-2">${plan.note}</p>` : ''}
+                ${plan.reminder > 0 ? `
+                    <div class="flex items-center mt-2 text-xs text-gray-500">
+                        <i class="fa fa-bell mr-1"></i>
+                        <span>提前${plan.reminder}分钟提醒</span>
+                    </div>
+                ` : ''}
+                ${plan.postponed ? `
+                    <div class="absolute top-2 right-2 px-2 py-0.5 bg-yellow-100 text-yellow-600 text-xs rounded-full">
+                        已推迟
+                    </div>
+                ` : ''}
+            `;
+            
+            // 添加点击事件
+            card.addEventListener('click', function(e) {
+                // 如果点击的是完成按钮，不打开详情
+                if (e.target.closest('.toggle-complete')) {
+                    return;
+                }
+                
+                // 打开计划详情
+                openPlanDetailModal(plan.id);
+            });
+            
+            // 添加完成按钮点击事件
+            const toggleCompleteBtn = card.querySelector('.toggle-complete');
+            toggleCompleteBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                togglePlanComplete(plan.id);
+            });
+            
+            return card;
+        }
+        
+        // 切换计划完成状态
+        function togglePlanComplete(planId) {
+            const plan = plans.find(p => p.id === planId);
+            if (plan) {
+                plan.completed = !plan.completed;
+                savePlans();
+                renderPlanList();
+                updateStatistics();
+                applyBackgroundSetting();
+            }
+        }
+        
+        // 打开计划详情模态框
+        function openPlanDetailModal(planId) {
+            const plan = plans.find(p => p.id === planId);
+            if (!plan) return;
+            
+            currentPlanId = planId;
+            
+            const contentEl = document.getElementById('planDetailContent');
+            contentEl.innerHTML = `
+                <div class="mb-4">
+                    <div class="flex items-center mb-2">
+                        <div class="w-10 h-10 rounded-full ${typeColors[plan.type]} flex items-center justify-center mr-3">
+                            ${typeIcons[plan.type]}
+                        </div>
+                        <h4 class="text-xl font-bold">${plan.name}</h4>
+                    </div>
+                    <div class="flex items-center mb-2">
+                        <span class="px-2 py-1 text-xs rounded-full ${typeColors[plan.type]} mr-2">${typeNames[plan.type]}</span>
+                        <span class="text-sm text-gray-500">
+                            ${plan.date} ${plan.time}
+                        </span>
+                    </div>
+                </div>
+                
+                <div class="space-y-3">
+                    <div class="flex">
+                        <span class="w-20 text-gray-500">预计耗时</span>
+                        <span>${plan.duration} 分钟</span>
+                    </div>
+                    <div class="flex">
+                        <span class="w-20 text-gray-500">提醒设置</span>
+                        <span>${plan.reminder > 0 ? `提前 ${plan.reminder} 分钟` : '不提醒'}</span>
+                    </div>
+                    <div class="flex">
+                        <span class="w-20 text-gray-500">提醒音效</span>
+                        <span>铃声 ${plan.sound.replace('sound', '')}</span>
+                    </div>
+                    <div class="flex">
+                        <span class="w-20 text-gray-500">完成状态</span>
+                        <span class="${plan.completed ? 'text-green-500' : 'text-orange-500'}">${plan.completed ? '已完成' : '未完成'}</span>
+                    </div>
+                    ${plan.note ? `
+                        <div>
+                            <span class="block text-gray-500 mb-1">备注</span>
+                            <p class="bg-gray-50 p-3 rounded-lg">${plan.note}</p>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+            
+            document.getElementById('planDetailModal').classList.remove('hidden');
+        }
+        
+        // 关闭计划详情模态框
+        function closePlanDetailModal() {
+            document.getElementById('planDetailModal').classList.add('hidden');
+            currentPlanId = null;
+        }
+        
+        // 编辑计划
+        function editPlan(planId) {
+            const plan = plans.find(p => p.id === planId);
+            if (!plan) return;
+            
+            // 关闭详情模态框
+            closePlanDetailModal();
+            
+            // 打开添加计划模态框
+            document.getElementById('addPlanModal').classList.remove('hidden');
+            
+            // 填充表单数据
+            document.getElementById('planName').value = plan.name;
+            document.getElementById('planDate').value = plan.date;
+            document.getElementById('planTime').value = plan.time;
+            document.getElementById('planDuration').value = plan.duration;
+            document.getElementById('planType').value = plan.type;
+            document.getElementById('planReminder').value = plan.reminder;
+            document.getElementById('planSound').value = plan.sound;
+            document.getElementById('planNote').value = plan.note;
+            
+            // 修改表单提交事件
+            const form = document.getElementById('addPlanForm');
+            const originalSubmitHandler = form.onsubmit;
+            
+            form.onsubmit = function(e) {
+                e.preventDefault();
+                
+                // 更新计划
+                plan.name = document.getElementById('planName').value;
+                plan.date = document.getElementById('planDate').value;
+                plan.time = document.getElementById('planTime').value;
+                plan.duration = parseInt(document.getElementById('planDuration').value);
+                plan.type = document.getElementById('planType').value;
+                plan.reminder = parseInt(document.getElementById('planReminder').value);
+                plan.sound = document.getElementById('planSound').value;
+                plan.note = document.getElementById('planNote').value;
+                
+                // 重新计算提醒时间
+                if (plan.reminder > 0) {
+                    const planDateTime = new Date(`${plan.date}T${plan.time}`);
+                    plan.reminderTime = new Date(planDateTime - plan.reminder * 60000).toISOString();
+                } else {
+                    plan.reminderTime = null;
+                }
+                
+                // 保存到 localStorage
+                savePlans();
+                
+                // 关闭模态框
+                closeAddPlanModal();
+                
+                // 重新渲染计划列表
+                renderPlanList();
+                
+                // 更新统计数据
+                updateStatistics();
+                
+                // 应用背景设置
+                applyBackgroundSetting();
+                
+                // 恢复原始提交处理程序
+                form.onsubmit = originalSubmitHandler;
+                
+                // 检查提醒
+                checkReminders();
+            };
+        }
+        
+        // 确认删除计划
+        function confirmDeletePlan(planId) {
+            const plan = plans.find(p => p.id === planId);
+            if (!plan) return;
+            
+            document.getElementById('confirmTitle').textContent = '删除计划';
+            document.getElementById('confirmMessage').textContent = `确定要删除计划"${plan.name}"吗？此操作无法撤销。`;
+            
+            // 设置确认操作
+            window.confirmAction = function() {
+                deletePlan(planId);
+            };
+            
+            // 打开确认对话框
+            document.getElementById('confirmDialog').classList.remove('hidden');
+        }
+        
+        // 删除计划
+        function deletePlan(planId) {
+            plans = plans.filter(p => p.id !== planId);
+            savePlans();
+            closePlanDetailModal();
+            renderPlanList();
+            updateStatistics();
+            applyBackgroundSetting();
+            closeConfirmDialog();
+        }
+        
+        // 确认清除已完成计划
+        function confirmClearCompleted() {
+            const completedCount = plans.filter(p => p.completed).length;
+            if (completedCount === 0) {
+                alert('没有已完成的计划');
+                return;
+            }
+            
+            document.getElementById('confirmTitle').textContent = '清除已完成计划';
+            document.getElementById('confirmMessage').textContent = `确定要清除所有 ${completedCount} 个已完成的计划吗？此操作无法撤销。`;
+            
+            // 设置确认操作
+            window.confirmAction = function() {
+                clearCompletedPlans();
+            };
+            
+            // 打开确认对话框
+            document.getElementById('confirmDialog').classList.remove('hidden');
+        }
+        
+        // 清除已完成计划
+        function clearCompletedPlans() {
+            plans = plans.filter(p => !p.completed);
+            savePlans();
+            renderPlanList();
+            updateStatistics();
+            applyBackgroundSetting();
+            closeConfirmDialog();
+            closeSettingsModal();
+        }
+        
+        // 关闭确认对话框
+        function closeConfirmDialog() {
+            document.getElementById('confirmDialog').classList.add('hidden');
+            window.confirmAction = null;
+        }
+        
+        // 执行确认操作
+        function executeConfirmAction() {
+            if (window.confirmAction) {
+                window.confirmAction();
+            }
+        }
+        
+        // 打开设置模态框
+        function openSettingsModal() {
+            document.getElementById('settingsModal').classList.remove('hidden');
+        }
+        
+        // 关闭设置模态框
+        function closeSettingsModal() {
+            document.getElementById('settingsModal').classList.add('hidden');
+        }
+        
+        // 更新音量
+        function updateVolume() {
+            settings.volume = parseInt(document.getElementById('volumeSlider').value);
+            saveSettings();
+        }
+        
+        // 更新默认提醒时间
+        function updateDefaultReminder() {
+            settings.defaultReminder = parseInt(document.getElementById('defaultReminder').value);
+            saveSettings();
+        }
+        
+        // 更新默认提醒音效
+        function updateDefaultSound() {
+            settings.defaultSound = document.getElementById('defaultSound').value;
+            saveSettings();
+        }
+        
+        // 更新背景选项
+        function updateBackgroundOption() {
+            settings.backgroundOption = document.getElementById('backgroundOption').value;
+            saveSettings();
+            applyBackgroundSetting();
+        }
+        
+        // 应用背景设置
+        function applyBackgroundSetting() {
+            const backgroundEl = document.getElementById('backgroundImage');
+            
+            if (settings.backgroundOption === 'none') {
+                backgroundEl.style.backgroundImage = 'none';
+                return;
+            }
+            
+            if (settings.backgroundOption === 'auto') {
+                // 根据今日计划类型选择背景
+                const today = new Date().toISOString().split('T')[0];
+                const todayPlans = plans.filter(p => p.date === today && !p.completed);
+                
+                if (todayPlans.length > 0) {
+                    // 统计各种类型的数量
+                    const typeCount = {};
+                    todayPlans.forEach(plan => {
+                        typeCount[plan.type] = (typeCount[plan.type] || 0) + 1;
+                    });
+                    
+                    // 找出最多的类型
+                    let maxType = 'other';
+                    let maxCount = 0;
+                    
+                    for (const type in typeCount) {
+                        if (typeCount[type] > maxCount) {
+                            maxCount = typeCount[type];
+                            maxType = type;
+                        }
+                    }
+                    
+                    // 设置背景
+                    setRandomBackground(maxType);
+                } else {
+                    // 没有今日计划，使用默认背景
+                    setRandomBackground('other');
+                }
+            } else {
+                // 使用指定类型的背景
+                setRandomBackground(settings.backgroundOption);
+            }
+        }
+        
+        // 设置随机背景
+        function setRandomBackground(type) {
+            const backgroundEl = document.getElementById('backgroundImage');
+            const images = typeImages[type] || typeImages.other;
+            
+            if (images.length > 0) {
+                const randomIndex = Math.floor(Math.random() * images.length);
+                backgroundEl.style.backgroundImage = `url(${images[randomIndex]})`;
+            } else {
+                backgroundEl.style.backgroundImage = 'none';
+            }
+        }
+        
+        // 打开筛选模态框
+        function openFilterModal() {
+            document.getElementById('filterModal').classList.remove('hidden');
+        }
+        
+        // 关闭筛选模态框
+        function closeFilterModal() {
+            document.getElementById('filterModal').classList.add('hidden');
+        }
+        
+        // 应用筛选
+        function applyFilter() {
+            // 获取选中的类型
+            const selectedTypes = [];
+            document.querySelectorAll('.filter-type:checked').forEach(checkbox => {
+                selectedTypes.push(checkbox.value);
+            });
+            
+            // 获取选中的状态
+            const selectedStatus = document.querySelector('input[name="filter-status"]:checked').value;
+            
+            // 应用筛选
+            filteredPlans = plans.filter(plan => {
+                // 类型筛选
+                if (selectedTypes.includes('all') || selectedTypes.includes(plan.type)) {
+                    // 状态筛选
+                    if (selectedStatus === 'all') {
+                        return true;
+                    } else if (selectedStatus === 'completed' && plan.completed) {
+                        return true;
+                    } else if (selectedStatus === 'pending' && !plan.completed) {
+                        return true;
+                    }
+                }
+                return false;
+            });
+            
+            // 重新渲染计划列表
+            renderPlanList();
+            
+            // 关闭筛选模态框
+            closeFilterModal();
+        }
+        
+        // 重置筛选
+        function resetFilter() {
+            // 重置类型选择
+            document.querySelectorAll('.filter-type').forEach(checkbox => {
+                checkbox.checked = checkbox.value === 'all';
+            });
+            
+            // 重置状态选择
+            document.querySelector('input[name="filter-status"][value="all"]').checked = true;
+        }
+        
+        // 打开排序模态框
+        function openSortModal() {
+            document.getElementById('sortModal').classList.remove('hidden');
+        }
+        
+        // 关闭排序模态框
+        function closeSortModal() {
+            document.getElementById('sortModal').classList.add('hidden');
+        }
+        
+        // 应用排序
+        function applySort() {
+            const selectedSort = document.querySelector('input[name="sort-option"]:checked').value;
+            
+            // 应用排序
+            switch (selectedSort) {
+                case 'time-asc':
+                    filteredPlans.sort((a, b) => {
+                        const timeA = a.time.split(':').map(Number);
+                        const timeB = b.time.split(':').map(Number);
+                        
+                        if (timeA[0] !== timeB[0]) {
+                            return timeA[0] - timeB[0];
+                        }
+                        return timeA[1] - timeB[1];
+                    });
+                    break;
+                    
+                case 'time-desc':
+                    filteredPlans.sort((a, b) => {
+                        const timeA = a.time.split(':').map(Number);
+                        const timeB = b.time.split(':').map(Number);
+                        
+                        if (timeA[0] !== timeB[0]) {
+                            return timeB[0] - timeA[0];
+                        }
+                        return timeB[1] - timeA[1];
+                    });
+                    break;
+                    
+                case 'duration-asc':
+                    filteredPlans.sort((a, b) => a.duration - b.duration);
+                    break;
+                    
+                case 'duration-desc':
+                    filteredPlans.sort((a, b) => b.duration - a.duration);
+                    break;
+                    
+                case 'name-asc':
+                    filteredPlans.sort((a, b) => a.name.localeCompare(b.name));
+                    break;
+                    
+                case 'name-desc':
+                    filteredPlans.sort((a, b) => b.name.localeCompare(a.name));
+                    break;
+            }
+            
+            // 重新渲染计划列表
+            renderPlanList();
+            
+            // 关闭排序模态框
+            closeSortModal();
+        }
+        
+        // 过滤今日计划
+        function filterTodayPlans() {
+            const today = new Date().toISOString().split('T')[0];
+            filteredPlans = plans.filter(p => p.date === today);
+            
+            // 按时间排序
+            filteredPlans.sort((a, b) => {
+                const timeA = a.time.split(':').map(Number);
+                const timeB = b.time.split(':').map(Number);
+                
+                if (timeA[0] !== timeB[0]) {
+                    return timeA[0] - timeB[0];
+                }
+                return timeA[1] - timeB[1];
+            });
+            
+            // 重新渲染计划列表
+            renderPlanList();
+            
+            // 更新统计数据
+            updateStatistics();
+            
+            // 更新底部导航状态
+            updateBottomNavState('today');
+        }
+        
+        // 过滤本周计划
+        function filterWeekPlans() {
+            const today = new Date();
+            const startOfWeek = new Date(today);
+            const day = today.getDay();
+            const diff = today.getDate() - day + (day === 0 ? -6 : 1); // 调整为周一为一周的开始
+            startOfWeek.setDate(diff);
+            startOfWeek.setHours(0, 0, 0, 0);
+            
+            const endOfWeek = new Date(startOfWeek);
+            endOfWeek.setDate(startOfWeek.getDate() + 6);
+            endOfWeek.setHours(23, 59, 59, 999);
+            
+            const startOfWeekStr = startOfWeek.toISOString().split('T')[0];
+            const endOfWeekStr = endOfWeek.toISOString().split('T')[0];
+            
+            filteredPlans = plans.filter(p => p.date >= startOfWeekStr && p.date <= endOfWeekStr);
+            
+            // 按日期和时间排序
+            filteredPlans.sort((a, b) => {
+                if (a.date !== b.date) {
+                    return a.date.localeCompare(b.date);
+                }
+                
+                const timeA = a.time.split(':').map(Number);
+                const timeB = b.time.split(':').map(Number);
+                
+                if (timeA[0] !== timeB[0]) {
+                    return timeA[0] - timeB[0];
+                }
+                return timeA[1] - timeB[1];
+            });
+            
+            // 重新渲染计划列表
+            renderPlanList();
+            
+            // 更新统计数据
+            updateStatistics();
+            
+            // 更新底部导航状态
+            updateBottomNavState('week');
+        }
+        
+        // 过滤历史计划
+        function filterHistoryPlans() {
+            const today = new Date().toISOString().split('T')[0];
+            filteredPlans = plans.filter(p => p.date < today);
+            
+            // 按日期和时间排序（最新的在前）
+            filteredPlans.sort((a, b) => {
+                if (a.date !== b.date) {
+                    return b.date.localeCompare(a.date);
+                }
+                
+                const timeA = a.time.split(':').map(Number);
+                const timeB = b.time.split(':').map(Number);
+                
+                if (timeA[0] !== timeB[0]) {
+                    return timeB[0] - timeA[0];
+                }
+                return timeB[1] - timeA[1];
+            });
+            
+            // 重新渲染计划列表
+            renderPlanList();
+            
+            // 更新统计数据
+            updateStatistics();
+            
+            // 更新底部导航状态
+            updateBottomNavState('history');
+        }
+        
+        // 更新底部导航状态
+        function updateBottomNavState(activeTab) {
+            const tabs = ['today', 'week', 'history'];
+            
+            tabs.forEach(tab => {
+                const btn = document.getElementById(`${tab}Btn`);
+                if (tab === activeTab) {
+                    btn.classList.add('text-primary');
+                    btn.classList.remove('text-gray-500');
+                } else {
+                    btn.classList.remove('text-primary');
+                    btn.classList.add('text-gray-500');
+                }
+            });
+        }
+        
+        // 更新统计数据
+        function updateStatistics() {
+            const today = new Date().toISOString().split('T')[0];
+            const todayPlans = plans.filter(p => p.date === today);
+            const completedPlans = todayPlans.filter(p => p.completed);
+            const pendingPlans = todayPlans.filter(p => !p.completed);
+            
+            document.getElementById('todayCount').textContent = todayPlans.length;
+            document.getElementById('completedCount').textContent = completedPlans.length;
+            document.getElementById('pendingCount').textContent = pendingPlans.length;
+        }
+        
+        // 检查提醒
+        function checkReminders() {
+            const now = new Date();
+            
+            // 清除之前的提醒定时器
+            if (reminderTimeout) {
+                clearTimeout(reminderTimeout);
+                reminderTimeout = null;
+            }
+            
+            // 查找需要提醒的计划
+            const dueReminders = plans.filter(plan => {
+                // 已完成的计划不提醒
+                if (plan.completed) return false;
+                
+                // 没有设置提醒的计划不提醒
+                if (!plan.reminderTime) return false;
+                
+                const reminderTime = new Date(plan.reminderTime);
+                // 提醒时间已到或已过，但不超过10分钟
+                return reminderTime <= now && now - reminderTime <= 600000;
+            });
+            
+            // 如果有需要提醒的计划，显示第一个
+            if (dueReminders.length > 0) {
+                showReminderNotification(dueReminders[0]);
+            } else {
+                // 查找下一个提醒
+                const upcomingReminders = plans.filter(plan => {
+                    if (plan.completed) return false;
+                    if (!plan.reminderTime) return false;
+                    
+                    const reminderTime = new Date(plan.reminderTime);
+                    return reminderTime > now;
+                });
+                
+                // 如果有即将到来的提醒，设置定时器
+                if (upcomingReminders.length > 0) {
+                    // 按提醒时间排序
+                    upcomingReminders.sort((a, b) => {
+                        return new Date(a.reminderTime) - new Date(b.reminderTime);
+                    });
+                    
+                    const nextReminder = upcomingReminders[0];
+                    const nextReminderTime = new Date(nextReminder.reminderTime);
+                    const delay = nextReminderTime - now;
+                    
+                    // 设置定时器
+                    reminderTimeout = setTimeout(() => {
+                        showReminderNotification(nextReminder);
+                    }, delay);
+                }
+            }
+        }
+        
+        // 显示提醒通知
+        function showReminderNotification(plan) {
+            const notificationEl = document.getElementById('reminderNotification');
+            const titleEl = document.getElementById('reminderTitle');
+            const timeEl = document.getElementById('reminderTime');
+            const durationEl = document.getElementById('reminderDuration');
+            const noteEl = document.getElementById('reminderNote');
+            const iconEl = document.getElementById('reminderIcon');
+            
+            // 设置提醒内容
+            titleEl.textContent = plan.name;
+            timeEl.textContent = `${plan.date} ${plan.time}`;
+            durationEl.textContent = `预计耗时：${plan.duration} 分钟`;
+            noteEl.textContent = plan.note || '无备注';
+            
+            // 设置图标
+            iconEl.className = `w-12 h-12 rounded-full ${typeColors[plan.type].split(' ')[0]} flex items-center justify-center text-white mr-4`;
+            iconEl.innerHTML = typeIcons[plan.type];
+            
+            // 播放提醒音效
+            playSound(plan.sound);
+            
+            // 显示通知
+            notificationEl.classList.remove('hidden');
+            
+            // 设置当前提醒的计划ID
+            notificationEl.dataset.planId = plan.id;
+        }
+        
+        // 关闭提醒通知
+        function closeReminderNotification() {
+            document.getElementById('reminderNotification').classList.add('hidden');
+        }
+        
+        // 推迟提醒
+        function postponeReminder() {
+            const notificationEl = document.getElementById('reminderNotification');
+            const planId = notificationEl.dataset.planId;
+            
+            if (planId) {
+                const plan = plans.find(p => p.id === planId);
+                if (plan) {
+                    // 将提醒时间推迟10分钟
+                    const currentReminderTime = new Date(plan.reminderTime);
+                    plan.reminderTime = new Date(currentReminderTime.getTime() + 10 * 60000).toISOString();
+                    plan.postponed = true;
+                    
+                    // 保存计划
+                    savePlans();
+                    
+                    // 关闭通知
+                    closeReminderNotification();
+                    
+                    // 重新检查提醒
+                    checkReminders();
+                }
+            }
+        }
+        
+        // 执行提醒
+        function executeReminder() {
+            const notificationEl = document.getElementById('reminderNotification');
+            const planId = notificationEl.dataset.planId;
+            
+            if (planId) {
+                const plan = plans.find(p => p.id === planId);
+                if (plan) {
+                    // 关闭通知
+                    closeReminderNotification();
+                    
+                    // 打开计划详情
+                    openPlanDetailModal(planId);
+                }
+            }
+        }
+        
+        // 播放音效
+        function playSound(soundName) {
+            const soundUrl = reminderSounds[soundName] || reminderSounds.sound1;
+            
+            if (soundUrl) {
+                const audio = new Audio(soundUrl);
+                audio.volume = settings.volume / 100;
+                audio.play().catch(error => {
+                    console.error('播放音效失败:', error);
+                });
+            }
+        }
+        
+        // 预览音效
+        function previewSound() {
+            const soundName = document.getElementById('planSound').value;
+            playSound(soundName);
+        }
+        
+        // 切换全选类型
+        function toggleSelectAllTypes(checked) {
+            document.querySelectorAll('.filter-type:not([value="all"])').forEach(checkbox => {
+                checkbox.checked = checked;
+            });
+        }
+    </script>
+</body>
+</html>
