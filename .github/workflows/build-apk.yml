@@ -1,0 +1,29 @@
+name: Build APK
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Build APK
+        uses: jaeggerr/convert-web-to-apk@v1
+        with:
+          app_name: 'Plan Every Day'
+          package_name: 'com.planeveryday.app'
+          url: 'https://shawngu520.github.io/daily-planner-app/'
+          theme_color: '#2563eb'
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release
+          path: '*.apk'
